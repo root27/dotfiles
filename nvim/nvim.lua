@@ -15,6 +15,21 @@ I hope you enjoy your Neovim journey,
 P.S. You can delete this when you're done too. It's your config now! :)
 --]]
 
+--[[ Templ File parse --]]
+
+--[[harpoon setup --]]
+--
+--
+--
+--
+--
+--
+vim.filetype.add({
+	extension = {
+		templ = "templ",
+	},
+})
+
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -166,8 +181,6 @@ vim.opt.rtp:prepend(lazypath)
 --
 --  To update plugins you can run
 --    :Lazy update
---
---
 -- NOTE: Here is where you install your plugins.
 require("lazy").setup({
 	-- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
@@ -177,12 +190,80 @@ require("lazy").setup({
 	-- with the first argument being the link and the following
 	-- keys can be used to configure plugin behavior/loading/etc.
 	--
+	--
+	--
+	--
+	--
+	{
+		"simrat39/rust-tools.nvim",
+		dependencies = { "neovim/nvim-lspconfig" },
+		config = function()
+			require("rust-tools").setup({
+				server = {
+					settings = {
+						["rust-analyzer"] = {
+							checkOnSave = { command = "clippy" },
+							inlayHints = { enable = true },
+						},
+					},
+				},
+			})
+		end,
+	},
+	{
+		"ThePrimeagen/harpoon",
+		branch = "harpoon2",
+		dependencies = { "nvim-lua/plenary.nvim" },
+		config = function()
+			local harpoon = require("harpoon")
+			harpoon:setup()
+
+			vim.keymap.set("n", "<leader>a", function()
+				harpoon:list():add()
+			end)
+			vim.keymap.set("n", "<leader>h", function()
+				harpoon.ui:toggle_quick_menu(harpoon:list())
+			end)
+
+			vim.keymap.set("n", "<C-s>1", function()
+				harpoon:list():select(1)
+			end)
+			vim.keymap.set("n", "<C-s>2", function()
+				harpoon:list():select(2)
+			end)
+			vim.keymap.set("n", "<C-s>3", function()
+				harpoon:list():select(3)
+			end)
+			vim.keymap.set("n", "<C-s>4", function()
+				harpoon:list():select(4)
+			end)
+
+			-- Toggle previous & next buffers stored within Harpoon list
+			vim.keymap.set("n", "<C-s>n", function()
+				harpoon:list():prev()
+			end)
+			vim.keymap.set("n", "<C-s>m", function()
+				harpoon:list():next()
+			end)
+		end,
+	},
 	-- Use `opts = {}` to force a plugin to be loaded.
 	--
 	-- Terminal plugin
 	{ "akinsho/toggleterm.nvim", version = "*", config = true },
 	--
-	--
+	-- tailwind-tools.lua
+	{
+		"luckasRanarison/tailwind-tools.nvim",
+		name = "tailwind-tools",
+		build = ":UpdateRemotePlugins",
+		dependencies = {
+			"nvim-treesitter/nvim-treesitter",
+			"nvim-telescope/telescope.nvim", -- optional
+			"neovim/nvim-lspconfig", -- optional
+		},
+		opts = {}, -- your configuration
+	},
 	-- Tree File system
 	--
 	--
@@ -501,6 +582,16 @@ require("lazy").setup({
 			vim.api.nvim_create_autocmd("LspAttach", {
 				group = vim.api.nvim_create_augroup("kickstart-lsp-attach", { clear = true }),
 				callback = function(event)
+					local client = vim.lsp.get_client_by_id(event.data.client_id)
+					if client and client.name == "rust_analyzer" then
+						-- Check if `inlay_hint.enable` function exists (Neovim 0.10+)
+						if vim.lsp.inlay_hint and vim.lsp.inlay_hint.enable then
+							vim.lsp.inlay_hint.enable(event.buf, true)
+						else
+							-- Fallback for older Neovim versions using rust-tools.nvim
+							require("rust-tools").inlay_hints.enable()
+						end
+					end
 					-- NOTE: Remember that Lua is a real programming language, and as such it is possible
 					-- to define small helper and utility functions so you don't have to repeat yourself.
 					--
@@ -595,7 +686,7 @@ require("lazy").setup({
 				-- clangd = {},
 				-- gopls = {},
 				-- pyright = {},
-				-- rust_analyzer = {},
+				--rust_analyzer = {},
 				-- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
 				--
 				-- Some languages (like typescript) have entire language plugins that can be useful:
@@ -604,7 +695,21 @@ require("lazy").setup({
 				-- But for many setups, the LSP (`tsserver`) will work just fine
 				-- tsserver = {},
 				--
+				rust_analyzer = {
 
+					settings = {
+						["rust-analyzer"] = {
+							checkOnSave = {
+								command = "clippy",
+							},
+							inlayHints = {
+								typeHints = { enable = true },
+								parameterHints = { enable = true },
+								chainingHints = { enable = true },
+							},
+						},
+					},
+				},
 				lua_ls = {
 					-- cmd = {...},
 					-- filetypes = { ...},
@@ -634,6 +739,7 @@ require("lazy").setup({
 			local ensure_installed = vim.tbl_keys(servers or {})
 			vim.list_extend(ensure_installed, {
 				"stylua", -- Used to format Lua code
+				"rust_analyzer",
 			})
 			require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
 
@@ -862,7 +968,7 @@ require("lazy").setup({
 		"nvim-treesitter/nvim-treesitter",
 		build = ":TSUpdate",
 		opts = {
-			ensure_installed = { "bash", "c", "html", "lua", "luadoc", "markdown", "vim", "vimdoc" },
+			ensure_installed = { "bash", "c", "html", "lua", "luadoc", "markdown", "vim", "vimdoc", "templ" },
 			-- Autoinstall languages that are not installed
 			auto_install = true,
 			highlight = {
