@@ -108,4 +108,15 @@ delrun() {
 }
 
 
+license(){
+
+    url="https://www.apache.org/licenses/LICENSE-2.0.txt"
+
+    curl "$url" > $PWD/LICENSE
+
+
+}
+
+
+
 
